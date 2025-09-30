@@ -15,6 +15,7 @@ interface DataContextType {
   deleteCourse: (courseId: string) => void;
   addPermissionRecord: (studentId: string, date: string, status: AttendanceStatus.PERMISSION | AttendanceStatus.SICK) => void;
   addAttendanceRecords: (classRecords: { studentId: string; status: AttendanceStatus }[], date: string, course: string, className: ClassName) => void;
+  deleteRecord: (recordId: string) => void;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
@@ -91,8 +92,12 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     setRecords(prev => [...prev, ...newRecords]);
   }, [students]);
 
+  const deleteRecord = useCallback((recordId: string) => {
+    setRecords(prev => prev.filter(r => r.id !== recordId));
+  }, []);
+
   return (
-    <DataContext.Provider value={{ students, courses, records, addStudent, deleteStudent, addCourse, deleteCourse, addPermissionRecord, addAttendanceRecords, addStudentsBulk }}>
+    <DataContext.Provider value={{ students, courses, records, addStudent, deleteStudent, addCourse, deleteCourse, addPermissionRecord, addAttendanceRecords, addStudentsBulk, deleteRecord }}>
       {children}
     </DataContext.Provider>
   );

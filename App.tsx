@@ -1,6 +1,5 @@
 import React from 'react';
-// FIX: Use namespace import for react-router-dom to fix module resolution errors.
-import * as ReactRouterDom from 'react-router-dom';
+import { HashRouter, Routes, Route, useLocation } from 'react-router-dom';
 import { DataProvider } from './context/DataContext';
 
 import HomePage from './pages/HomePage';
@@ -12,21 +11,21 @@ import AdminPage from './pages/AdminPage';
 import Header from './components/Header';
 
 const AppContent: React.FC = () => {
-    const location = ReactRouterDom.useLocation();
+    const location = useLocation();
     const showHeader = location.pathname !== '/';
 
     return (
         <div className="bg-[#F9FAFB] min-h-screen">
             {showHeader && <Header />}
             <main>
-                <ReactRouterDom.Routes>
-                    <ReactRouterDom.Route path="/" element={<HomePage />} />
-                    <ReactRouterDom.Route path="/permission" element={<PermissionPage />} />
-                    <ReactRouterDom.Route path="/attendance" element={<AttendancePage />} />
-                    <ReactRouterDom.Route path="/report/general" element={<GeneralReportPage />} />
-                    <ReactRouterDom.Route path="/report/student" element={<StudentReportPage />} />
-                    <ReactRouterDom.Route path="/admin" element={<AdminPage />} />
-                </ReactRouterDom.Routes>
+                <Routes>
+                    <Route path="/" element={<HomePage />} />
+                    <Route path="/permission" element={<PermissionPage />} />
+                    <Route path="/attendance" element={<AttendancePage />} />
+                    <Route path="/report/general" element={<GeneralReportPage />} />
+                    <Route path="/report/student" element={<StudentReportPage />} />
+                    <Route path="/admin" element={<AdminPage />} />
+                </Routes>
             </main>
         </div>
     );
@@ -36,9 +35,9 @@ const AppContent: React.FC = () => {
 const App: React.FC = () => {
   return (
     <DataProvider>
-      <ReactRouterDom.HashRouter>
+      <HashRouter>
         <AppContent />
-      </ReactRouterDom.HashRouter>
+      </HashRouter>
     </DataProvider>
   );
 };

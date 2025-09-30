@@ -2,17 +2,18 @@ import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import { CLASS_NAMES } from '../constants';
 import type { ClassName, Record } from '../types';
-import { DocumentArrowDownIcon } from '../components/icons';
+import { DocumentArrowDownIcon, TrashIcon } from '../components/icons';
 
 declare const XLSX: any; // For SheetJS library loaded from CDN
 
 const GeneralReportPage: React.FC = () => {
-  const { records, courses } = useData();
+  const { records, courses, deleteRecord } = useData();
   const [filterClass, setFilterClass] = useState<ClassName | ''>('');
   const [filterCourse, setFilterCourse] = useState<string>('');
   const [filterStartDate, setFilterStartDate] = useState<string>('');
   const [filterEndDate, setFilterEndDate] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [toastMessage, setToastMessage] = useState<string>('');
 
   const filteredRecords = useMemo(() => {
     return records
@@ -42,6 +43,16 @@ const GeneralReportPage: React.FC = () => {
     XLSX.utils.book_append_sheet(workbook, worksheet, "التقرير العام");
     XLSX.writeFile(workbook, "التقرير_العام.xlsx");
   };
+  
+  const handleDeleteRecord = (recordId: string, studentName: string) => {
+      if (window.confirm(`هل أنت متأكد من حذف سجل الطالب ${studentName}؟`)) {
+          deleteRecord(recordId);
+          setToastMessage(`تم حذف سجل الطالب ${studentName} بنجاح.`);
+          setTimeout(() => {
+            setToastMessage('');
+          }, 3000);
+      }
+  };
 
   const statusBadge = (status: string) => {
       switch(status) {
@@ -56,6 +67,18 @@ const GeneralReportPage: React.FC = () => {
 
   return (
     <div className="container mx-auto p-4 md:p-8">
+      {toastMessage && (
+        <div 
+            className="fixed bottom-8 right-8 z-50 bg-slate-900 text-white py-3 px-6 rounded-lg shadow-2xl animate-fade-in-up flex items-center gap-3" 
+            role="alert"
+            style={{ direction: 'rtl' }}
+        >
+            <svg className="w-6 h-6 text-emerald-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <p className="font-semibold">{toastMessage}</p>
+        </div>
+      )}
       <div className="bg-white rounded-2xl shadow-2xl shadow-slate-900/10 border-t-4 border-indigo-500 p-8">
         <h1 className="text-3xl font-extrabold text-center text-slate-800 mb-2">التقرير العام</h1>
         <p className="text-center text-slate-500 mb-8">استعراض وتصفية جميع سجلات الحضور والإذن</p>
@@ -111,6 +134,7 @@ const GeneralReportPage: React.FC = () => {
                 {['التاريخ', 'اسم الطالب', 'الفصل', 'المادة الدراسية', 'الحالة'].map(header => (
                   <th key={header} className="py-3 px-6 text-right font-semibold text-white text-sm uppercase tracking-wider">{header}</th>
                 ))}
+                <th className="py-3 px-6 text-center font-semibold text-white text-sm uppercase tracking-wider">حذف</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-200">
@@ -125,10 +149,19 @@ const GeneralReportPage: React.FC = () => {
                       {record.status}
                     </span>
                   </td>
+                  <td className="py-4 px-6 text-center">
+                    <button 
+                      onClick={() => handleDeleteRecord(record.id, record.studentName)}
+                      className="text-slate-400 hover:text-rose-600 transition-colors p-1 rounded-full hover:bg-rose-100"
+                      aria-label={`حذف سجل ${record.studentName} بتاريخ ${record.date}`}
+                    >
+                      <TrashIcon className="w-5 h-5" />
+                    </button>
+                  </td>
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={5} className="text-center py-16 text-slate-500">
+                  <td colSpan={6} className="text-center py-16 text-slate-500">
                     <div className="flex flex-col items-center">
                         <svg className="w-16 h-16 text-slate-300 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg>
                         <p className="font-bold text-lg">لا توجد سجلات لعرضها.</p>
