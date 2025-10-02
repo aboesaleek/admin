@@ -100,7 +100,8 @@
     "react/": "https://aistudiocdn.com/react@^19.1.1/",
     "react": "https://aistudiocdn.com/react@^19.1.1",
     "react-dom/": "https://aistudiocdn.com/react-dom@^19.1.1/",
-    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.2"
+    "react-router-dom": "https://aistudiocdn.com/react-router-dom@^7.9.2",
+    "@supabase/supabase-js": "https://aistudiocdn.com/@supabase/supabase-js@^2.58.0"
   }
 }
 </script>
@@ -108,53 +109,5 @@
   <body>
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
-    <script type="module">
-  // 1. Mengimpor "alat-alat" Firebase yang dibutuhkan dari CDN
-  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-analytics.js";
-  import { getFirestore, collection, addDoc, serverTimestamp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
-  // 2. Kode "Config" Anda (kunci unik untuk proyek Anda)
-  // Your web app's Firebase configuration
-  const firebaseConfig = {
-    apiKey: "AIzaSyDGN4WTdvhHGmzan9L_yeKvoJ32fo1csqU",
-    authDomain: "absenjamiah-ddf40.firebaseapp.com",
-    projectId: "absenjamiah-ddf40",
-    storageBucket: "absenjamiah-ddf40.appspot.com",
-    messagingSenderId: "321925576493",
-    appId: "1:321925576493:web:7bcc86c8c7f05f169045a4",
-    measurementId: "G-G0P12MJ3DS"
-  };
-
-  // 3. Inisialisasi Firebase dan layanan yang akan digunakan
-  const app = initializeApp(firebaseConfig);
-  const analytics = getAnalytics(app); // Mengaktifkan Google Analytics
-  const db = getFirestore(app); // Mengaktifkan Database Firestore
-
-  // 4. Fungsi untuk menyimpan data absen (sama seperti sebelumnya)
-  window.simpanAbsen = async function() {
-    const namaInput = document.getElementById('namaLengkap');
-    const nama = namaInput.value;
-
-    if (!nama) {
-      alert("Silakan isi nama terlebih dahulu!");
-      return;
-    }
-
-    try {
-      // Menambahkan dokumen baru ke koleksi "absensi"
-      await addDoc(collection(db, "absensi"), {
-        nama: nama,
-        waktu: serverTimestamp() // Mencatat waktu server saat absen
-      });
-      alert("Terima kasih, " + nama + "! Absen Anda telah tercatat.");
-      namaInput.value = ''; // Kosongkan input setelah berhasil
-    } catch (e) {
-      console.error("Error menambahkan dokumen: ", e);
-      alert("Maaf, terjadi kesalahan saat mencatat absen.");
-    }
-  }
-
-</script>
   </body>
 </html>
