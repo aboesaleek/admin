@@ -1,99 +1,131 @@
-
-import React, { createContext, useState, useContext, ReactNode, useCallback } from 'react';
+import React, { createContext, useState, useContext, ReactNode, useCallback, useEffect } from 'react';
+import { supabase } from '../supabaseClient';
 import type { Student, Course, Record, ClassName } from '../types';
 import { AttendanceStatus } from '../types';
-import { useMockData } from '../hooks/useMockData';
 
 interface DataContextType {
   students: Student[];
   courses: Course[];
   records: Record[];
-  addStudent: (name: string, className: ClassName) => void;
-  addStudentsBulk: (names: string[], className: ClassName) => void;
-  deleteStudent: (studentId: string) => void;
-  addCourse: (name: string) => void;
-  deleteCourse: (courseId: string) => void;
-  addPermissionRecord: (studentId: string, date: string, status: AttendanceStatus.PERMISSION | AttendanceStatus.SICK) => void;
-  addAttendanceRecords: (classRecords: { studentId: string; status: AttendanceStatus }[], date: string, course: string, className: ClassName) => void;
-  deleteRecord: (recordId: string) => void;
+  addStudent: (name: string, className: ClassName) => Promise<void>;
+  addStudentsBulk: (names: string[], className: ClassName) => Promise<void>;
+  deleteStudent: (studentId: string) => Promise<void>;
+  addCourse: (name: string) => Promise<void>;
+  deleteCourse: (courseId: string) => Promise<void>;
+  addPermissionRecord: (studentId: string, date: string, status: AttendanceStatus.PERMISSION | AttendanceStatus.SICK) => Promise<void>;
+  addAttendanceRecords: (classRecords: { studentId: string; status: AttendanceStatus }[], date: string, course: string, className: ClassName) => Promise<void>;
+  deleteRecord: (recordId: string) => Promise<void>;
 }
 
 const DataContext = createContext<DataContextType | undefined>(undefined);
 
 export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const { initialStudents, initialCourses, initialRecords } = useMockData();
-  const [students, setStudents] = useState<Student[]>(initialStudents);
-  const [courses, setCourses] = useState<Course[]>(initialCourses);
-  const [records, setRecords] = useState<Record[]>(initialRecords);
+  const [students, setStudents] = useState<Student[]>([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [records, setRecords] = useState<Record[]>([]);
 
-  const addStudent = useCallback((name: string, className: ClassName) => {
-    const newStudent: Student = {
-      id: `student-${Date.now()}`,
-      name,
-      className,
+  useEffect(() => {
+    const fetchData = async () => {
+      const { data: studentsData, error: studentsError } = await supabase.from('students').select('*').order('name');
+      if (studentsError) console.error('Error fetching students:', studentsError.message);
+      else setStudents(studentsData || []);
+
+      const { data: coursesData, error: coursesError } = await supabase.from('courses').select('*').order('name');
+      if (coursesError) console.error('Error fetching courses:', coursesError.message);
+      else setCourses(coursesData || []);
+      
+      const { data: recordsData, error: recordsError } = await supabase.from('records').select('*').order('date', { ascending: false });
+      if (recordsError) console.error('Error fetching records:', recordsError.message);
+      else setRecords(recordsData || []);
     };
-    setStudents(prev => [...prev, newStudent]);
+
+    fetchData();
+
+    const channel = supabase.channel('db-changes');
+    const subscription = channel
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'students' }, (payload) => setStudents(prev => [...prev, payload.new as Student].sort((a,b) => a.name.localeCompare(b.name))))
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'students' }, (payload) => setStudents(prev => prev.filter(s => s.id !== (payload.old as Student).id)))
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'courses' }, (payload) => setCourses(prev => [...prev, payload.new as Course].sort((a,b) => a.name.localeCompare(b.name))))
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'courses' }, (payload) => setCourses(prev => prev.filter(c => c.id !== (payload.old as Course).id)))
+      .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'records' }, (payload) => setRecords(prev => [payload.new as Record, ...prev]))
+      .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'records' }, (payload) => setRecords(prev => prev.filter(r => r.id !== (payload.old as Record).id)))
+      .subscribe();
+
+    return () => {
+        supabase.removeChannel(channel);
+    };
   }, []);
   
-  const addStudentsBulk = useCallback((names: string[], className: ClassName) => {
-    const newStudents: Student[] = names.map((name, index) => ({
-      id: `student-${Date.now()}-${index}`,
-      name: name.trim(),
-      className,
-    }));
-    setStudents(prev => [...prev, ...newStudents]);
+  const addStudent = useCallback(async (name: string, className: ClassName) => {
+    const { error } = await supabase.from('students').insert({ name, className });
+    if (error) console.error('Error adding student:', error.message);
+  }, []);
+  
+  const addStudentsBulk = useCallback(async (names: string[], className: ClassName) => {
+    const newStudents = names.map(name => ({ name: name.trim(), className }));
+    if (newStudents.length > 0) {
+        const { error } = await supabase.from('students').insert(newStudents);
+        if (error) console.error('Error adding students in bulk:', error.message);
+    }
   }, []);
 
-  const deleteStudent = useCallback((studentId: string) => {
-    setStudents(prev => prev.filter(s => s.id !== studentId));
+  const deleteStudent = useCallback(async (studentId: string) => {
+    // Also delete related records
+    await supabase.from('records').delete().eq('studentId', studentId);
+    const { error } = await supabase.from('students').delete().eq('id', studentId);
+    if (error) console.error('Error deleting student:', error.message);
   }, []);
 
-  const addCourse = useCallback((name: string) => {
-    const newCourse: Course = {
-      id: `course-${Date.now()}`,
-      name,
-    };
-    setCourses(prev => [...prev, newCourse]);
+  const addCourse = useCallback(async (name: string) => {
+    const { error } = await supabase.from('courses').insert({ name });
+    if (error) console.error('Error adding course:', error.message);
   }, []);
 
-  const deleteCourse = useCallback((courseId: string) => {
-    setCourses(prev => prev.filter(c => c.id !== courseId));
+  const deleteCourse = useCallback(async (courseId: string) => {
+    const { error } = await supabase.from('courses').delete().eq('id', courseId);
+    if (error) console.error('Error deleting course:', error.message);
   }, []);
 
-  const addPermissionRecord = useCallback((studentId: string, date: string, status: AttendanceStatus.PERMISSION | AttendanceStatus.SICK) => {
+  const addPermissionRecord = useCallback(async (studentId: string, date: string, status: AttendanceStatus.PERMISSION | AttendanceStatus.SICK) => {
     const student = students.find(s => s.id === studentId);
-    if (!student) return;
-    const newRecord: Record = {
-      id: `record-${Date.now()}`,
+    if (!student) {
+        console.error("Student not found for permission record");
+        return;
+    }
+    const newRecord = {
       date,
       studentId,
       studentName: student.name,
       className: student.className,
       status,
-      type: 'permission'
+      type: 'permission' as const
     };
-    setRecords(prev => [...prev, newRecord]);
+    const { error } = await supabase.from('records').insert(newRecord);
+    if (error) console.error('Error adding permission record:', error.message);
   }, [students]);
 
-  const addAttendanceRecords = useCallback((classRecords: { studentId: string; status: AttendanceStatus }[], date: string, course: string, className: ClassName) => {
-    const newRecords: Record[] = classRecords.map(({ studentId, status }) => {
+  const addAttendanceRecords = useCallback(async (classRecords: { studentId: string; status: AttendanceStatus }[], date: string, course: string, className: ClassName) => {
+    const newRecords = classRecords.map(({ studentId, status }) => {
       const student = students.find(s => s.id === studentId);
       return {
-        id: `record-${Date.now()}-${studentId}`,
         date,
         studentId,
         studentName: student?.name || 'Unknown',
         className,
         status,
         course,
-        type: 'attendance'
+        type: 'attendance' as const
       };
     });
-    setRecords(prev => [...prev, ...newRecords]);
+    if (newRecords.length > 0) {
+        const { error } = await supabase.from('records').insert(newRecords);
+        if (error) console.error('Error adding attendance records:', error.message);
+    }
   }, [students]);
 
-  const deleteRecord = useCallback((recordId: string) => {
-    setRecords(prev => prev.filter(r => r.id !== recordId));
+  const deleteRecord = useCallback(async (recordId: string) => {
+    const { error } = await supabase.from('records').delete().eq('id', recordId);
+    if (error) console.error('Error deleting record:', error.message);
   }, []);
 
   return (
