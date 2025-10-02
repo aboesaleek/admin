@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo } from 'react';
 import { useData } from '../context/DataContext';
 import type { Student, ClassName } from '../types';
 import { AttendanceStatus } from '../types';
@@ -11,15 +11,30 @@ const PermissionPage: React.FC = () => {
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [status, setStatus] = useState<AttendanceStatus.PERMISSION | AttendanceStatus.SICK>(AttendanceStatus.PERMISSION);
   const [message, setMessage] = useState<string>('');
+  const [searchQuery, setSearchQuery] = useState('');
+
+  const searchResults = useMemo(() => {
+    if (searchQuery.length < 2) return [];
+    return students.filter(student =>
+        student.name.toLowerCase().includes(searchQuery.toLowerCase())
+    ).sort((a,b) => a.name.localeCompare(b.name));
+  }, [searchQuery, students]);
+
+  const handleSelectStudentFromSearch = (student: Student) => {
+    setSelectedClass(student.className);
+    setSelectedStudentId(student.id);
+    setSearchQuery('');
+  };
+
+  const handleClassChange = (newClass: ClassName) => {
+    setSelectedClass(newClass);
+    setSelectedStudentId('');
+  };
 
   const filteredStudents = useMemo(() => {
     if (!selectedClass) return [];
-    return students.filter(s => s.className === selectedClass);
+    return students.filter(s => s.className === selectedClass).sort((a,b) => a.name.localeCompare(b.name));
   }, [selectedClass, students]);
-
-  useEffect(() => {
-    setSelectedStudentId('');
-  }, [selectedClass]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -59,9 +74,40 @@ const PermissionPage: React.FC = () => {
             <input type="date" id="date" value={date} onChange={(e) => setDate(e.target.value)} className={inputStyle} required />
           </div>
 
+          <div className="relative">
+            <label htmlFor="search" className={labelStyle}>بحث سريع عن طالب</label>
+            <input
+              type="text"
+              id="search"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="اكتب اسم الطالب..."
+              className={inputStyle}
+              autoComplete="off"
+            />
+            {searchQuery && (
+                <ul className="absolute z-10 w-full mt-1 bg-white border border-slate-300 rounded-lg shadow-lg max-h-60 overflow-y-auto">
+                    {searchResults.length > 0 ? searchResults.map(student => (
+                        <li key={student.id} onClick={() => handleSelectStudentFromSearch(student)} className="px-4 py-2 cursor-pointer hover:bg-indigo-50">
+                            {student.name} <span className="text-sm text-slate-500">({student.className})</span>
+                        </li>
+                    )) : <li className="px-4 py-2 text-slate-500">لم يتم العثور على الطالب</li>}
+                </ul>
+            )}
+          </div>
+          
+          <div className="relative">
+              <div className="absolute inset-0 flex items-center" aria-hidden="true">
+                  <div className="w-full border-t border-slate-300" />
+              </div>
+              <div className="relative flex justify-center">
+                  <span className="bg-white px-2 text-sm text-slate-500">أو اختر يدويًا</span>
+              </div>
+          </div>
+
           <div>
             <label htmlFor="class" className={labelStyle}>اختر الفصل</label>
-            <select id="class" value={selectedClass} onChange={(e) => setSelectedClass(e.target.value as ClassName)} className={inputStyle} required>
+            <select id="class" value={selectedClass} onChange={(e) => handleClassChange(e.target.value as ClassName)} className={inputStyle} required>
               <option value="" disabled>-- اختر الفصل --</option>
               {CLASS_NAMES.map(name => <option key={name} value={name}>{name}</option>)}
             </select>

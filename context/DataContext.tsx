@@ -11,6 +11,7 @@ interface DataContextType {
   addStudentsBulk: (names: string[], className: ClassName) => Promise<void>;
   deleteStudent: (studentId: string) => Promise<void>;
   addCourse: (name: string) => Promise<void>;
+  addCoursesBulk: (names: string[]) => Promise<void>;
   deleteCourse: (courseId: string) => Promise<void>;
   addPermissionRecord: (studentId: string, date: string, status: AttendanceStatus.PERMISSION | AttendanceStatus.SICK) => Promise<void>;
   addAttendanceRecords: (classRecords: { studentId: string; status: AttendanceStatus }[], date: string, course: string, className: ClassName) => Promise<void>;
@@ -44,10 +45,13 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
     const channel = supabase.channel('db-changes');
     const subscription = channel
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'students' }, (payload) => setStudents(prev => [...prev, payload.new as Student].sort((a,b) => a.name.localeCompare(b.name))))
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'students' }, (payload) => setStudents(prev => prev.map(s => s.id === (payload.new as Student).id ? payload.new as Student : s).sort((a,b) => a.name.localeCompare(b.name))))
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'students' }, (payload) => setStudents(prev => prev.filter(s => s.id !== (payload.old as Student).id)))
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'courses' }, (payload) => setCourses(prev => [...prev, payload.new as Course].sort((a,b) => a.name.localeCompare(b.name))))
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'courses' }, (payload) => setCourses(prev => prev.map(c => c.id === (payload.new as Course).id ? payload.new as Course : c).sort((a,b) => a.name.localeCompare(b.name))))
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'courses' }, (payload) => setCourses(prev => prev.filter(c => c.id !== (payload.old as Course).id)))
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'records' }, (payload) => setRecords(prev => [payload.new as Record, ...prev]))
+      .on('postgres_changes', { event: 'UPDATE', schema: 'public', table: 'records' }, (payload) => setRecords(prev => prev.map(r => r.id === (payload.new as Record).id ? payload.new as Record : r)))
       .on('postgres_changes', { event: 'DELETE', schema: 'public', table: 'records' }, (payload) => setRecords(prev => prev.filter(r => r.id !== (payload.old as Record).id)))
       .subscribe();
 
@@ -79,6 +83,14 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   const addCourse = useCallback(async (name: string) => {
     const { error } = await supabase.from('courses').insert({ name });
     if (error) console.error('Error adding course:', error.message);
+  }, []);
+  
+  const addCoursesBulk = useCallback(async (names: string[]) => {
+    const newCourses = names.map(name => ({ name: name.trim() })).filter(c => c.name);
+    if (newCourses.length > 0) {
+        const { error } = await supabase.from('courses').insert(newCourses);
+        if (error) console.error('Error adding courses in bulk:', error.message);
+    }
   }, []);
 
   const deleteCourse = useCallback(async (courseId: string) => {
@@ -129,7 +141,7 @@ export const DataProvider: React.FC<{ children: ReactNode }> = ({ children }) =>
   }, []);
 
   return (
-    <DataContext.Provider value={{ students, courses, records, addStudent, deleteStudent, addCourse, deleteCourse, addPermissionRecord, addAttendanceRecords, addStudentsBulk, deleteRecord }}>
+    <DataContext.Provider value={{ students, courses, records, addStudent, deleteStudent, addCourse, deleteCourse, addPermissionRecord, addAttendanceRecords, addStudentsBulk, deleteRecord, addCoursesBulk }}>
       {children}
     </DataContext.Provider>
   );

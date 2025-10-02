@@ -5,12 +5,19 @@ import { AttendanceStatus } from '../types';
 import { CLASS_NAMES } from '../constants';
 
 const AttendancePage: React.FC = () => {
-  const { students, courses, addAttendanceRecords } = useData();
+  const { students, courses, records, addAttendanceRecords } = useData();
   const [selectedClass, setSelectedClass] = useState<ClassName | ''>('');
   const [selectedCourse, setSelectedCourse] = useState<string>('');
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [studentStatuses, setStudentStatuses] = useState<Record<string, AttendanceStatus>>({});
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+
+  const todaysRecords = useMemo(() => {
+    const today = new Date().toISOString().split('T')[0];
+    return records
+        .filter(r => r.date === today && r.type === 'attendance')
+        .sort((a,b) => a.studentName.localeCompare(b.studentName, 'ar'));
+  }, [records]);
 
   const filteredStudents = useMemo(() => {
     if (!selectedClass) return [];
@@ -21,8 +28,16 @@ const AttendancePage: React.FC = () => {
     setStudentStatuses({});
   }, [filteredStudents]);
 
-  const handleStatusChange = (studentId: string, status: AttendanceStatus) => {
-    setStudentStatuses(prev => ({ ...prev, [studentId]: status }));
+  const handleStatusToggle = (studentId: string) => {
+    setStudentStatuses(prev => {
+      const newStatuses = { ...prev };
+      if (newStatuses[studentId]) {
+        delete newStatuses[studentId];
+      } else {
+        newStatuses[studentId] = AttendanceStatus.ABSENT;
+      }
+      return newStatuses;
+    });
   };
   
   const handleSubmit = (e: React.FormEvent) => {
@@ -55,6 +70,14 @@ const AttendancePage: React.FC = () => {
   
   const inputStyle = "block w-full rounded-lg border-slate-300 bg-slate-100 py-3 px-4 text-slate-800 placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/50 transition-all";
   const labelStyle = "block text-sm font-semibold text-slate-700 mb-2";
+  const statusBadge = (status: string) => {
+    switch(status) {
+        case 'غائب': return 'bg-rose-100 text-rose-700 border border-rose-200';
+        case 'إذن': return 'bg-amber-100 text-amber-700 border border-amber-200';
+        case 'مرض': return 'bg-orange-100 text-orange-700 border border-orange-200';
+        default: return 'bg-slate-100 text-slate-700 border border-slate-200';
+    }
+  }
 
   return (
     <div className="container mx-auto p-4 md:p-8">
@@ -105,7 +128,48 @@ const AttendancePage: React.FC = () => {
           </div>
         </div>
 
-        {selectedClass && (
+        {!selectedClass ? (
+          <div className="animate-fade-in">
+            <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center border-b pb-4">
+              سجلات الحضور لليوم
+            </h2>
+            {todaysRecords.length > 0 ? (
+              <div className="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
+                <table className="min-w-full bg-white">
+                    <thead className="bg-slate-800">
+                        <tr>
+                            {['اسم الطالب', 'الفصل', 'المادة الدراسية', 'الحالة'].map(header => (
+                                <th key={header} className="py-3 px-6 text-right font-semibold text-white text-sm uppercase tracking-wider">{header}</th>
+                            ))}
+                        </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                        {todaysRecords.map(record => (
+                            <tr key={record.id} className="hover:bg-slate-50 transition-colors">
+                                <td className="py-4 px-6 font-bold text-slate-800 whitespace-nowrap">{record.studentName}</td>
+                                <td className="py-4 px-6 text-slate-700 whitespace-nowrap">{record.className}</td>
+                                <td className="py-4 px-6 text-slate-700 whitespace-nowrap">{record.course || '-'}</td>
+                                <td className="py-4 px-6">
+                                    <span className={`px-3 py-1 text-xs font-bold rounded-full ${statusBadge(record.status)}`}>
+                                        {record.status}
+                                    </span>
+                                </td>
+                            </tr>
+                        ))}
+                    </tbody>
+                </table>
+              </div>
+            ) : (
+                <div className="text-center py-16 text-slate-500 bg-slate-50/70 rounded-xl border-2 border-dashed border-slate-300">
+                    <div className="flex flex-col items-center">
+                        <svg className="w-16 h-16 text-slate-300 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg>
+                        <p className="font-bold text-lg">لا توجد سجلات حضور لليوم.</p>
+                        <p className="text-sm">ابدأ باختيار فصل دراسي لتسجيل الحضور.</p>
+                    </div>
+                </div>
+            )}
+          </div>
+        ) : (
           <form onSubmit={handleSubmit}>
             <div className="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
               <table className="min-w-full bg-white">
@@ -120,24 +184,18 @@ const AttendancePage: React.FC = () => {
                     <tr key={student.id} className="hover:bg-slate-50 transition-colors">
                       <td className="py-4 px-6 font-medium text-slate-800">{student.name}</td>
                       <td className="py-4 px-6">
-                        <div className="flex justify-center items-center space-x-4 space-x-reverse">
-                          {[AttendanceStatus.ABSENT, AttendanceStatus.PERMISSION, AttendanceStatus.SICK].map(status => (
-                            <label key={status} className={`cursor-pointer px-4 py-2 rounded-lg border-2 text-sm font-bold transition-all ${studentStatuses[student.id] === status ? 'text-white shadow-md' : 'text-slate-600 bg-slate-100 border-slate-200'}
-                              ${status === AttendanceStatus.ABSENT && studentStatuses[student.id] === status ? 'bg-rose-500 border-rose-600' : ''}
-                              ${status === AttendanceStatus.PERMISSION && studentStatuses[student.id] === status ? 'bg-amber-500 border-amber-600' : ''}
-                              ${status === AttendanceStatus.SICK && studentStatuses[student.id] === status ? 'bg-orange-500 border-orange-600' : ''}
-                            `}>
-                              <input
-                                type="radio"
-                                name={`status-${student.id}`}
-                                value={status}
-                                checked={studentStatuses[student.id] === status}
-                                onChange={() => handleStatusChange(student.id, status)}
-                                className="sr-only"
-                              />
-                              <span>{status}</span>
-                            </label>
-                          ))}
+                        <div className="flex justify-center items-center">
+                          <button
+                            type="button"
+                            onClick={() => handleStatusToggle(student.id)}
+                            className={`cursor-pointer px-4 py-2 rounded-lg border-2 text-sm font-bold transition-all w-24 text-center ${
+                                studentStatuses[student.id] === AttendanceStatus.ABSENT
+                                ? 'text-white shadow-md bg-rose-500 border-rose-600'
+                                : 'text-slate-600 bg-slate-100 border-slate-200 hover:bg-slate-200'
+                            }`}
+                           >
+                            {AttendanceStatus.ABSENT}
+                          </button>
                         </div>
                       </td>
                     </tr>

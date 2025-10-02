@@ -40,6 +40,10 @@ const Header: React.FC = () => {
               التقرير العام
               {activeLinkIndicator('/report/general')}
             </Link>
+            <Link to="/report/class" className={navLinkClasses('/report/class')}>
+              التقرير حسب الفصل
+              {activeLinkIndicator('/report/class')}
+            </Link>
             <Link to="/report/student" className={navLinkClasses('/report/student')}>
               التقرير الفردي
               {activeLinkIndicator('/report/student')}

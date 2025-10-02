@@ -7,6 +7,7 @@ import PermissionPage from './pages/PermissionPage';
 import AttendancePage from './pages/AttendancePage';
 import GeneralReportPage from './pages/GeneralReportPage';
 import StudentReportPage from './pages/StudentReportPage';
+import ClassReportPage from './pages/ClassReportPage';
 import AdminPage from './pages/AdminPage';
 import Header from './components/Header';
 
@@ -24,6 +25,7 @@ const AppContent: React.FC = () => {
                     <Route path="/attendance" element={<AttendancePage />} />
                     <Route path="/report/general" element={<GeneralReportPage />} />
                     <Route path="/report/student" element={<StudentReportPage />} />
+                    <Route path="/report/class" element={<ClassReportPage />} />
                     <Route path="/admin" element={<AdminPage />} />
                 </Routes>
             </main>

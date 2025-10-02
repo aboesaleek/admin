@@ -1,6 +1,6 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
-import { UserPlusIcon, DocumentAddIcon, ChartBarIcon, UserCircleIcon, Cog6ToothIcon } from '../components/icons';
+import { UserPlusIcon, DocumentAddIcon, ChartBarIcon, UserCircleIcon, Cog6ToothIcon, DocumentReportIcon } from '../components/icons';
 
 const HomePage: React.FC = () => {
   return (
@@ -36,10 +36,15 @@ const HomePage: React.FC = () => {
           </Link>
         </div>
         
-        <div className="flex flex-col md:flex-row items-center justify-center gap-8 w-full max-w-4xl glass-card py-4 px-8 rounded-full shadow-xl">
+        <div className="flex flex-col md:flex-row items-center justify-center gap-8 w-full max-w-5xl glass-card py-4 px-8 rounded-full shadow-xl">
           <Link to="/report/general" className="flex items-center text-lg font-semibold text-slate-800 hover:gradient-text transition-colors">
             <ChartBarIcon className="w-6 h-6 ml-2" />
             التقرير العام
+          </Link>
+          <div className="border-r-2 border-slate-300 h-6 hidden md:block"></div>
+          <Link to="/report/class" className="flex items-center text-lg font-semibold text-slate-800 hover:gradient-text transition-colors">
+            <DocumentReportIcon className="w-6 h-6 ml-2" />
+            التقرير حسب الفصل
           </Link>
           <div className="border-r-2 border-slate-300 h-6 hidden md:block"></div>
           <Link to="/report/student" className="flex items-center text-lg font-semibold text-slate-800 hover:gradient-text transition-colors">
@@ -49,9 +54,12 @@ const HomePage: React.FC = () => {
         </div>
 
         <div className="absolute bottom-6 left-6">
-          <Link to="/admin" className="flex items-center text-sm text-slate-600 hover:text-slate-900 transition-colors font-medium">
-            <Cog6ToothIcon className="w-5 h-5 ml-2"/>
-            دخول المسؤول
+          <Link
+            to="/admin"
+            className="p-3 rounded-full text-slate-600 hover:text-slate-900 hover:bg-slate-200/50 transition-colors"
+            aria-label="دخول المسؤول"
+          >
+            <Cog6ToothIcon className="w-6 h-6"/>
           </Link>
         </div>
       </div>

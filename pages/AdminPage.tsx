@@ -5,10 +5,10 @@ import type { ClassName } from '../types';
 import { TrashIcon } from '../components/icons';
 
 const AdminPage: React.FC = () => {
-  const { students, courses, addStudentsBulk, deleteStudent, addCourse, deleteCourse } = useData();
+  const { students, courses, addStudentsBulk, deleteStudent, addCoursesBulk, deleteCourse } = useData();
   const [selectedClass, setSelectedClass] = useState<ClassName | ''>('');
   const [bulkStudentNames, setBulkStudentNames] = useState('');
-  const [newCourseName, setNewCourseName] = useState('');
+  const [bulkCourseNames, setBulkCourseNames] = useState('');
 
   const handleAddStudents = () => {
     if (!selectedClass || !bulkStudentNames.trim()) return;
@@ -17,10 +17,11 @@ const AdminPage: React.FC = () => {
     setBulkStudentNames('');
   };
 
-  const handleAddCourse = () => {
-    if (!newCourseName.trim()) return;
-    addCourse(newCourseName);
-    setNewCourseName('');
+  const handleAddCourses = () => {
+    if (!bulkCourseNames.trim()) return;
+    const names = bulkCourseNames.split('\n').filter(name => name.trim() !== '');
+    addCoursesBulk(names);
+    setBulkCourseNames('');
   };
 
   const studentsInClass = useMemo(() => {
@@ -53,7 +54,13 @@ const AdminPage: React.FC = () => {
             <>
               <div className="mb-4">
                 <label className={labelStyle}>إضافة طلاب جدد (اسم واحد في كل سطر)</label>
-                <textarea value={bulkStudentNames} onChange={e => setBulkStudentNames(e.target.value)} rows={5} className={inputStyle}></textarea>
+                <textarea 
+                  value={bulkStudentNames} 
+                  onChange={e => setBulkStudentNames(e.target.value)} 
+                  rows={5} 
+                  className={inputStyle}
+                  placeholder='اسم الطالب الأول&#10;اسم الطالب الثاني&#10;اسم الطالب الثالث'
+                ></textarea>
                 <button onClick={handleAddStudents} className={`mt-3 ${buttonStyle}`}>إضافة الطلاب</button>
               </div>
               <div>
@@ -77,11 +84,15 @@ const AdminPage: React.FC = () => {
         <div className={cardStyle}>
           <h2 className="text-2xl font-bold text-slate-800 mb-6">إدارة المواد الدراسية</h2>
           <div className="mb-4">
-            <label className={labelStyle}>إضافة مادة دراسية جديدة</label>
-            <div className="flex gap-2">
-              <input type="text" value={newCourseName} onChange={e => setNewCourseName(e.target.value)} className={`${inputStyle} flex-grow`} />
-              <button onClick={handleAddCourse} className={`shrink-0 ${buttonStyle} w-auto`}>إضافة</button>
-            </div>
+            <label className={labelStyle}>إضافة مواد دراسية جديدة (اسم واحد في كل سطر)</label>
+            <textarea
+              value={bulkCourseNames}
+              onChange={e => setBulkCourseNames(e.target.value)}
+              rows={5}
+              className={inputStyle}
+              placeholder='القرآن الكريم&#10;الحديث الشريف&#10;الفقه'
+            ></textarea>
+            <button onClick={handleAddCourses} className={`mt-3 ${buttonStyle}`}>إضافة المواد</button>
           </div>
           <div>
             <h3 className="font-bold mb-2 text-slate-700">المواد الدراسية الحالية ({courses.length})</h3>
