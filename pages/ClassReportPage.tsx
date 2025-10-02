@@ -3,6 +3,9 @@ import { useData } from '../context/DataContext';
 import { CLASS_NAMES } from '../constants';
 import type { ClassName } from '../types';
 import { AttendanceStatus } from '../types';
+import { DocumentArrowDownIcon } from '../components/icons';
+
+declare const XLSX: any; // For SheetJS library loaded from CDN
 
 interface ClassReportData {
   studentId: string;
@@ -48,6 +51,24 @@ const ClassReportPage: React.FC = () => {
 
     return data.sort((a, b) => a.studentName.localeCompare(b.studentName, 'ar'));
   }, [selectedClass, students, records]);
+  
+  const exportToExcel = () => {
+    if (!reportData || reportData.length === 0 || !selectedClass) return;
+
+    const dataToExport = reportData.map(item => ({
+      'اسم الطالب': item.studentName,
+      'غائب': item.absentCount,
+      'إذن': item.permissionCount,
+      'مرض': item.sickCount,
+      'المجموع': item.totalByRecord,
+      'مجموع الأيام': item.totalByDay,
+    }));
+
+    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, `تقرير فصل ${selectedClass}`);
+    XLSX.writeFile(workbook, `تقرير_فصل_${selectedClass.replace(/\s/g, '_')}.xlsx`);
+  };
 
   const inputStyle = "block w-full rounded-lg border-slate-300 bg-white py-3 px-4 text-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/50 transition-all";
   const labelStyle = "block text-sm font-semibold text-slate-700 mb-2";
@@ -67,37 +88,49 @@ const ClassReportPage: React.FC = () => {
         </div>
 
         {selectedClass ? (
-          <div className="overflow-x-auto rounded-lg border border-slate-200 shadow-sm animate-fade-in">
-            <table className="min-w-full bg-white">
-              <thead className="bg-slate-800">
-                <tr>
-                  <th className="py-3 px-4 text-right font-semibold text-white text-sm uppercase tracking-wider">اسم الطالب</th>
-                  <th className="py-3 px-4 text-center font-semibold text-white text-sm uppercase tracking-wider">غائب</th>
-                  <th className="py-3 px-4 text-center font-semibold text-white text-sm uppercase tracking-wider">إذن</th>
-                  <th className="py-3 px-4 text-center font-semibold text-white text-sm uppercase tracking-wider">مرض</th>
-                  <th className="py-3 px-4 text-center font-semibold text-white text-sm uppercase tracking-wider">المجموع</th>
-                  <th className="py-3 px-4 text-center font-semibold text-white text-sm uppercase tracking-wider">مجموع الأيام</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-200">
-                {reportData.length > 0 ? reportData.map(data => (
-                  <tr key={data.studentId} className="hover:bg-slate-50 transition-colors">
-                    <td className="py-3 px-4 font-bold text-slate-800 whitespace-nowrap">{data.studentName}</td>
-                    <td className="py-3 px-4 text-center text-slate-700">{data.absentCount}</td>
-                    <td className="py-3 px-4 text-center text-slate-700">{data.permissionCount}</td>
-                    <td className="py-3 px-4 text-center text-slate-700">{data.sickCount}</td>
-                    <td className="py-3 px-4 text-center font-bold text-indigo-600">{data.totalByRecord}</td>
-                    <td className="py-3 px-4 text-center font-bold text-purple-600">{data.totalByDay}</td>
-                  </tr>
-                )) : (
-                  <tr>
-                    <td colSpan={6} className="text-center py-16 text-slate-500">
-                      <p className="font-bold text-lg">لا توجد سجلات غياب لهذا الفصل.</p>
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
+          <div className="animate-fade-in">
+            <div className="flex justify-end mb-4">
+                <button
+                onClick={exportToExcel}
+                disabled={reportData.length === 0}
+                className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold py-2 px-4 rounded-lg hover:shadow-lg hover:shadow-emerald-500/30 transition-all duration-300 transform hover:-translate-y-0.5 disabled:from-slate-400 disabled:to-slate-500 disabled:shadow-none disabled:cursor-not-allowed"
+                >
+                <DocumentArrowDownIcon className="w-5 h-5"/>
+                <span>تصدير إلى Excel</span>
+                </button>
+            </div>
+            <div className="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
+                <table className="min-w-full bg-white">
+                <thead className="bg-slate-800">
+                    <tr>
+                    <th className="py-3 px-4 text-right font-semibold text-white text-sm uppercase tracking-wider">اسم الطالب</th>
+                    <th className="py-3 px-4 text-center font-semibold text-white text-sm uppercase tracking-wider">غائب</th>
+                    <th className="py-3 px-4 text-center font-semibold text-white text-sm uppercase tracking-wider">إذن</th>
+                    <th className="py-3 px-4 text-center font-semibold text-white text-sm uppercase tracking-wider">مرض</th>
+                    <th className="py-3 px-4 text-center font-semibold text-white text-sm uppercase tracking-wider">المجموع</th>
+                    <th className="py-3 px-4 text-center font-semibold text-white text-sm uppercase tracking-wider">مجموع الأيام</th>
+                    </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-200">
+                    {reportData.length > 0 ? reportData.map(data => (
+                    <tr key={data.studentId} className="hover:bg-slate-50 transition-colors">
+                        <td className="py-3 px-4 font-bold text-slate-800 whitespace-nowrap">{data.studentName}</td>
+                        <td className="py-3 px-4 text-center text-slate-700">{data.absentCount}</td>
+                        <td className="py-3 px-4 text-center text-slate-700">{data.permissionCount}</td>
+                        <td className="py-3 px-4 text-center text-slate-700">{data.sickCount}</td>
+                        <td className="py-3 px-4 text-center font-bold text-indigo-600">{data.totalByRecord}</td>
+                        <td className="py-3 px-4 text-center font-bold text-purple-600">{data.totalByDay}</td>
+                    </tr>
+                    )) : (
+                    <tr>
+                        <td colSpan={6} className="text-center py-16 text-slate-500">
+                        <p className="font-bold text-lg">لا توجد سجلات غياب لهذا الفصل.</p>
+                        </td>
+                    </tr>
+                    )}
+                </tbody>
+                </table>
+            </div>
           </div>
         ) : (
             <div className="text-center py-16 text-slate-500 bg-slate-50/70 rounded-xl border-2 border-dashed border-slate-300">
