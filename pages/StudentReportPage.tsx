@@ -5,12 +5,17 @@ import type { ClassName, Student } from '../types';
 import { AttendanceStatus } from '../types';
 import { UserCircleIcon, TrashIcon } from '../components/icons';
 
+type ToastMessage = {
+  text: string;
+  type: 'success' | 'error';
+};
+
 const StudentReportPage: React.FC = () => {
     const { students, records, deleteRecord } = useData();
     const [selectedClass, setSelectedClass] = useState<ClassName | ''>('');
     const [selectedStudentId, setSelectedStudentId] = useState<string>('');
     const [searchQuery, setSearchQuery] = useState('');
-    const [toastMessage, setToastMessage] = useState<string>('');
+    const [toastMessage, setToastMessage] = useState<ToastMessage | null>(null);
     const chartRef = useRef<HTMLCanvasElement>(null);
     const chartInstance = useRef<any>(null);
 
@@ -41,13 +46,18 @@ const StudentReportPage: React.FC = () => {
         return records.filter(r => r.studentId === selectedStudentId).sort((a,b) => b.date.localeCompare(a.date));
     }, [selectedStudentId, records]);
     
-    const handleDeleteRecord = (recordId: string, studentName: string) => {
+    const handleDeleteRecord = async (recordId: string, studentName: string) => {
       if (window.confirm(`هل أنت متأكد من حذف هذا السجل للطالب ${studentName}؟`)) {
-          deleteRecord(recordId);
-          setToastMessage(`تم حذف السجل بنجاح.`);
-          setTimeout(() => {
-            setToastMessage('');
-          }, 3000);
+          try {
+            await deleteRecord(recordId);
+            setToastMessage({ text: 'تم حذف السجل بنجاح.', type: 'success' });
+          } catch(error) {
+            setToastMessage({ text: 'فشل حذف السجل.', type: 'error' });
+          } finally {
+            setTimeout(() => {
+                setToastMessage(null);
+            }, 3000);
+          }
       }
     };
 
@@ -171,14 +181,20 @@ const StudentReportPage: React.FC = () => {
         <div className="container mx-auto p-4 md:p-8">
             {toastMessage && (
                 <div 
-                    className="fixed bottom-8 right-8 z-50 bg-slate-900 text-white py-3 px-6 rounded-lg shadow-2xl animate-fade-in-up flex items-center gap-3" 
+                    className={`fixed bottom-8 right-8 z-50 bg-slate-900 text-white py-3 px-6 rounded-lg shadow-2xl animate-fade-in-up flex items-center gap-3`} 
                     role="alert"
                     style={{ direction: 'rtl' }}
                 >
-                    <svg className="w-6 h-6 text-emerald-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-                    </svg>
-                    <p className="font-semibold">{toastMessage}</p>
+                    {toastMessage.type === 'success' ? (
+                        <svg className="w-6 h-6 text-emerald-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                    ) : (
+                        <svg className="w-6 h-6 text-rose-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                           <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+                        </svg>
+                    )}
+                    <p className="font-semibold">{toastMessage.text}</p>
                 </div>
             )}
             <div className="max-w-6xl mx-auto bg-white rounded-2xl shadow-2xl shadow-slate-900/10 border-t-4 border-indigo-500 p-8">

@@ -13,16 +13,25 @@ const AttendancePage: React.FC = () => {
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
 
   const todaysRecords = useMemo(() => {
-    const today = new Date().toISOString().split('T')[0];
     return records
-        .filter(r => r.date === today)
+        .filter(r => r.date === date)
         .sort((a,b) => a.studentName.localeCompare(b.studentName, 'ar'));
-  }, [records]);
+  }, [records, date]);
 
   const filteredStudents = useMemo(() => {
     if (!selectedClass) return [];
     return students.filter(s => s.className === selectedClass).sort((a,b) => a.name.localeCompare(b.name));
   }, [selectedClass, students]);
+  
+  const permissionedStudentsToday = useMemo(() => {
+    const studentIds = new Set();
+    records.forEach(r => {
+        if (r.date === date && (r.status === AttendanceStatus.PERMISSION || r.status === AttendanceStatus.SICK)) {
+            studentIds.add(r.studentId);
+        }
+    });
+    return studentIds;
+  }, [records, date]);
 
   useEffect(() => {
     setStudentStatuses({});
@@ -40,7 +49,7 @@ const AttendancePage: React.FC = () => {
     });
   };
   
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setMessage(null);
 
@@ -61,11 +70,15 @@ const AttendancePage: React.FC = () => {
       return;
     }
     
-    addAttendanceRecords(recordsToSubmit, date, selectedCourse, selectedClass);
-    
-    setMessage({ text: 'تم حفظ بيانات الحضور بنجاح!', type: 'success' });
-    setStudentStatuses({});
-    setTimeout(() => setMessage(null), 3000);
+    try {
+      await addAttendanceRecords(recordsToSubmit, date, selectedCourse, selectedClass);
+      setMessage({ text: 'تم حفظ بيانات الحضور بنجاح!', type: 'success' });
+      setStudentStatuses({});
+      setTimeout(() => setMessage(null), 3000);
+    } catch (error) {
+      setMessage({ text: 'حدث خطأ أثناء حفظ بيانات الحضور.', type: 'error' });
+      setTimeout(() => setMessage(null), 3000);
+    }
   };
   
   const inputStyle = "block w-full rounded-lg border-slate-300 bg-slate-100 py-3 px-4 text-slate-800 placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/50 transition-all";
@@ -131,7 +144,7 @@ const AttendancePage: React.FC = () => {
         {!selectedClass ? (
           <div className="animate-fade-in">
             <h2 className="text-2xl font-bold text-slate-800 mb-6 text-center border-b pb-4">
-              سجلات الغياب لليوم
+              سجلات الغياب والإذن لليوم
             </h2>
             {todaysRecords.length > 0 ? (
               <div className="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
@@ -163,7 +176,7 @@ const AttendancePage: React.FC = () => {
                 <div className="text-center py-16 text-slate-500 bg-slate-50/70 rounded-xl border-2 border-dashed border-slate-300">
                     <div className="flex flex-col items-center">
                         <svg className="w-16 h-16 text-slate-300 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg>
-                        <p className="font-bold text-lg">لا توجد سجلات غياب لليوم.</p>
+                        <p className="font-bold text-lg">لا توجد سجلات لليوم.</p>
                         <p className="text-sm">ابدأ باختيار فصل دراسي لتسجيل الحضور.</p>
                     </div>
                 </div>
@@ -181,21 +194,27 @@ const AttendancePage: React.FC = () => {
                 </thead>
                 <tbody className="divide-y divide-slate-200">
                   {filteredStudents.map(student => (
-                    <tr key={student.id} className="hover:bg-slate-50 transition-colors">
+                    <tr key={student.id} className={`transition-colors ${permissionedStudentsToday.has(student.id) ? 'bg-amber-50/50' : 'hover:bg-slate-50'}`}>
                       <td className="py-4 px-6 font-medium text-slate-800">{student.name}</td>
                       <td className="py-4 px-6">
                         <div className="flex justify-center items-center">
-                          <button
-                            type="button"
-                            onClick={() => handleStatusToggle(student.id)}
-                            className={`cursor-pointer px-4 py-2 rounded-lg border-2 text-sm font-bold transition-all w-24 text-center ${
-                                studentStatuses[student.id] === AttendanceStatus.ABSENT
-                                ? 'text-white shadow-md bg-rose-500 border-rose-600'
-                                : 'text-slate-600 bg-slate-100 border-slate-200 hover:bg-slate-200'
-                            }`}
-                           >
-                            {AttendanceStatus.ABSENT}
-                          </button>
+                          {permissionedStudentsToday.has(student.id) ? (
+                            <span className="px-4 py-2 rounded-lg border-2 text-sm font-bold text-amber-700 bg-amber-100 border-amber-200 w-24 text-center">
+                                إذن/مرض
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              onClick={() => handleStatusToggle(student.id)}
+                              className={`cursor-pointer px-4 py-2 rounded-lg border-2 text-sm font-bold transition-all w-24 text-center ${
+                                  studentStatuses[student.id] === AttendanceStatus.ABSENT
+                                  ? 'text-white shadow-md bg-rose-500 border-rose-600'
+                                  : 'text-slate-600 bg-slate-100 border-slate-200 hover:bg-slate-200'
+                              }`}
+                            >
+                              {AttendanceStatus.ABSENT}
+                            </button>
+                          )}
                         </div>
                       </td>
                     </tr>

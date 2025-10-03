@@ -10,7 +10,7 @@ const PermissionPage: React.FC = () => {
   const [selectedStudentId, setSelectedStudentId] = useState<string>('');
   const [date, setDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [status, setStatus] = useState<AttendanceStatus.PERMISSION | AttendanceStatus.SICK>(AttendanceStatus.PERMISSION);
-  const [message, setMessage] = useState<string>('');
+  const [message, setMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
 
   const searchResults = useMemo(() => {
@@ -36,18 +36,24 @@ const PermissionPage: React.FC = () => {
     return students.filter(s => s.className === selectedClass).sort((a,b) => a.name.localeCompare(b.name));
   }, [selectedClass, students]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setMessage(null);
     if (!selectedStudentId || !date || !status) {
-      setMessage('الرجاء تعبئة جميع الحقول');
+      setMessage({ text: 'الرجاء تعبئة جميع الحقول', type: 'error' });
       return;
     }
-    addPermissionRecord(selectedStudentId, date, status);
-    setMessage('تم تسجيل طلب الإذن بنجاح!');
-    setSelectedClass('');
-    setSelectedStudentId('');
-    setStatus(AttendanceStatus.PERMISSION);
-    setTimeout(() => setMessage(''), 3000);
+    try {
+      await addPermissionRecord(selectedStudentId, date, status);
+      setMessage({ text: 'تم تسجيل طلب الإذن بنجاح!', type: 'success' });
+      setSelectedClass('');
+      setSelectedStudentId('');
+      setStatus(AttendanceStatus.PERMISSION);
+      setTimeout(() => setMessage(null), 3000);
+    } catch (error) {
+      setMessage({ text: 'حدث خطأ أثناء تسجيل الإذن.', type: 'error' });
+      setTimeout(() => setMessage(null), 3000);
+    }
   };
 
   const inputStyle = "block w-full rounded-lg border-slate-300 bg-slate-100 py-3 px-4 text-slate-800 placeholder:text-slate-400 focus:border-indigo-500 focus:bg-white focus:ring-2 focus:ring-indigo-500/50 transition-all";
@@ -60,11 +66,24 @@ const PermissionPage: React.FC = () => {
         <p className="text-center text-slate-500 mb-8">قم بتسجيل الإذن أو المرض للطالب المحدد</p>
         
         {message && (
-          <div className="bg-emerald-50 border-l-4 border-emerald-400 text-emerald-800 p-4 rounded-lg relative mb-6 flex items-center shadow-md shadow-emerald-500/10" role="alert">
-             <svg className="w-6 h-6 ml-3 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <span className="block sm:inline font-semibold">{message}</span>
+          <div
+            className={`p-4 rounded-lg relative mb-6 flex items-center shadow-md ${
+              message.type === 'success'
+                ? 'bg-emerald-50 border-l-4 border-emerald-400 text-emerald-800 shadow-emerald-500/10'
+                : 'bg-rose-50 border-l-4 border-rose-400 text-rose-800 shadow-rose-500/10'
+            }`}
+            role="alert"
+          >
+            {message.type === 'success' ? (
+               <svg className="w-6 h-6 ml-3 text-emerald-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+              </svg>
+            ) : (
+               <svg className="w-6 h-6 ml-3 text-rose-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth={2} stroke="currentColor">
+                <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" />
+              </svg>
+            )}
+            <span className="block sm:inline font-semibold">{message.text}</span>
           </div>
         )}
 

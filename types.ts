@@ -35,3 +35,34 @@ export interface Record {
   course?: string; // Optional, only for attendance records
   type: 'permission' | 'attendance';
 }
+
+// New types for Dormitory
+export interface Dormitory {
+    id: string;
+    name: string;
+}
+
+export interface DormitoryStudent {
+    id: string;
+    name: string;
+    dormitoryId: string;
+}
+
+export interface DormitoryPermissionRecord {
+    id: string;
+    date: string; // YYYY-MM-DD
+    studentId: string;
+    studentName: string;
+    dormitoryId: string;
+    dormitoryName: string;
+    description?: string;
+}
+
+// New type for User Profile with Role
+export type UserRole = 'admin' | 'academic' | 'dormitory';
+
+export interface Profile {
+  id: string;
+  role: UserRole;
+  email?: string; // Added to manage users
+}

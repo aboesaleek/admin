@@ -1,77 +1,44 @@
 import React, { useState, useMemo } from 'react';
-import { useData } from '../context/DataContext';
-import { CLASS_NAMES } from '../constants';
-import type { ClassName, Record } from '../types';
-import { DocumentArrowDownIcon, TrashIcon } from '../components/icons';
-
-declare const XLSX: any; // For SheetJS library loaded from CDN
+import { useData } from '../../context/DataContext';
+import { TrashIcon } from '../../components/icons';
 
 type ToastMessage = {
   text: string;
   type: 'success' | 'error';
 };
 
-const GeneralReportPage: React.FC = () => {
-  const { records, courses, deleteRecord } = useData();
-  const [filterClass, setFilterClass] = useState<ClassName | ''>('');
-  const [filterCourse, setFilterCourse] = useState<string>('');
+const DormitoryReportPage: React.FC = () => {
+  const { dormitories, dormitoryPermissions, deleteDormitoryPermissionRecord } = useData();
+  const [filterDormitory, setFilterDormitory] = useState<string>('');
   const [filterStartDate, setFilterStartDate] = useState<string>('');
   const [filterEndDate, setFilterEndDate] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [toastMessage, setToastMessage] = useState<ToastMessage | null>(null);
 
   const filteredRecords = useMemo(() => {
-    return records
+    return dormitoryPermissions
       .filter(record => {
-        if (filterClass && record.className !== filterClass) return false;
-        if (filterCourse && record.course !== filterCourse) return false;
+        if (filterDormitory && record.dormitoryId !== filterDormitory) return false;
         if (filterStartDate && record.date < filterStartDate) return false;
         if (filterEndDate && record.date > filterEndDate) return false;
         if (searchQuery && !record.studentName.toLowerCase().includes(searchQuery.toLowerCase())) return false;
         return true;
       })
-      .sort((a, b) => b.date.localeCompare(a.date)); // Sort by most recent date
-  }, [records, filterClass, filterCourse, filterStartDate, filterEndDate, searchQuery]);
+      .sort((a, b) => b.date.localeCompare(a.date));
+  }, [dormitoryPermissions, filterDormitory, filterStartDate, filterEndDate, searchQuery]);
 
-  const exportToExcel = () => {
-    const dataToExport = filteredRecords.map(r => ({
-      'التاريخ': r.date,
-      'اسم الطالب': r.studentName,
-      'الفصل': r.className,
-      'المادة الدراسية': r.course || '-',
-      'الحالة': r.status,
-      'النوع': r.type === 'attendance' ? 'حضور' : 'إذن',
-    }));
-
-    const worksheet = XLSX.utils.json_to_sheet(dataToExport);
-    const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, worksheet, "التقرير العام");
-    XLSX.writeFile(workbook, "التقرير_العام.xlsx");
-  };
-  
   const handleDeleteRecord = async (recordId: string, studentName: string) => {
-      if (window.confirm(`هل أنت متأكد من حذف سجل الطالب ${studentName}؟`)) {
+      if (window.confirm(`هل أنت متأكد من حذف إذن الطالب ${studentName}؟`)) {
           try {
-            await deleteRecord(recordId);
-            setToastMessage({ text: `تم حذف سجل الطالب ${studentName} بنجاح.`, type: 'success' });
-          } catch (error) {
-            setToastMessage({ text: 'فشل حذف السجل. الرجاء المحاولة مرة أخرى.', type: 'error' });
+            await deleteDormitoryPermissionRecord(recordId);
+            setToastMessage({ text: `تم حذف إذن الطالب ${studentName} بنجاح.`, type: 'success'});
+          } catch(error) {
+            setToastMessage({ text: 'فشل حذف الإذن.', type: 'error' });
           } finally {
-            setTimeout(() => {
-              setToastMessage(null);
-            }, 3000);
+            setTimeout(() => setToastMessage(null), 3000);
           }
       }
   };
-
-  const statusBadge = (status: string) => {
-      switch(status) {
-          case 'غائب': return 'bg-rose-100 text-rose-700 border border-rose-200';
-          case 'إذن': return 'bg-amber-100 text-amber-700 border border-amber-200';
-          case 'مرض': return 'bg-orange-100 text-orange-700 border border-orange-200';
-          default: return 'bg-slate-100 text-slate-700 border border-slate-200';
-      }
-  }
   
   const inputStyle = "block w-full rounded-lg border-slate-300 bg-white py-2 px-3 text-slate-800 focus:border-indigo-500 focus:ring-2 focus:ring-indigo-500/50 transition-all";
 
@@ -79,7 +46,7 @@ const GeneralReportPage: React.FC = () => {
     <div className="container mx-auto p-4 md:p-8">
       {toastMessage && (
         <div 
-            className={`fixed bottom-8 right-8 z-50 bg-slate-900 text-white py-3 px-6 rounded-lg shadow-2xl animate-fade-in-up flex items-center gap-3`} 
+            className="fixed bottom-8 right-8 z-50 bg-slate-900 text-white py-3 px-6 rounded-lg shadow-2xl animate-fade-in-up flex items-center gap-3" 
             role="alert"
             style={{ direction: 'rtl' }}
         >
@@ -96,33 +63,20 @@ const GeneralReportPage: React.FC = () => {
         </div>
       )}
       <div className="bg-white rounded-2xl shadow-2xl shadow-slate-900/10 border-t-4 border-indigo-500 p-8">
-        <h1 className="text-3xl font-extrabold text-center text-slate-800 mb-2">التقرير العام</h1>
-        <p className="text-center text-slate-500 mb-8">استعراض وتصفية جميع سجلات الحضور والإذن</p>
+        <h1 className="text-3xl font-extrabold text-center text-slate-800 mb-2">التقرير العام لأذونات السكن</h1>
+        <p className="text-center text-slate-500 mb-8">استعراض وتصفية جميع سجلات أذونات الخروج</p>
         
         <div className="mb-6 p-6 bg-slate-50/70 rounded-xl border border-slate-200/80">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="lg:col-span-4">
                <label className="block text-sm font-semibold text-slate-700 mb-2">بحث باسم الطالب</label>
-                <input
-                  type="text"
-                  placeholder="اكتب جزء من الاسم للبحث..."
-                  value={searchQuery}
-                  onChange={e => setSearchQuery(e.target.value)}
-                  className={inputStyle}
-                />
+                <input type="text" placeholder="اكتب جزء من الاسم للبحث..." value={searchQuery} onChange={e => setSearchQuery(e.target.value)} className={inputStyle} />
             </div>
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">تصفية حسب الفصل</label>
-              <select onChange={e => setFilterClass(e.target.value as ClassName)} value={filterClass} className={inputStyle}>
+              <label className="block text-sm font-semibold text-slate-700 mb-2">تصفية حسب المهجع</label>
+              <select onChange={e => setFilterDormitory(e.target.value)} value={filterDormitory} className={inputStyle}>
                 <option value="">الكل</option>
-                {CLASS_NAMES.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-2">تصفية حسب المادة</label>
-              <select onChange={e => setFilterCourse(e.target.value)} value={filterCourse} className={inputStyle}>
-                <option value="">الكل</option>
-                {courses.map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
+                {dormitories.map(d => <option key={d.id} value={d.id}>{d.name}</option>)}
               </select>
             </div>
             <div>
@@ -136,18 +90,11 @@ const GeneralReportPage: React.FC = () => {
           </div>
         </div>
         
-        <div className="flex justify-end mb-4">
-            <button onClick={exportToExcel} className="inline-flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-green-600 text-white font-bold py-2 px-4 rounded-lg hover:shadow-lg hover:shadow-emerald-500/30 transition-all duration-300 transform hover:-translate-y-0.5">
-                <DocumentArrowDownIcon className="w-5 h-5"/>
-                <span>تصدير إلى Excel</span>
-            </button>
-        </div>
-
         <div className="overflow-x-auto rounded-lg border border-slate-200 shadow-sm">
           <table className="min-w-full bg-white">
             <thead className="bg-slate-800">
               <tr>
-                {['التاريخ', 'اسم الطالب', 'الفصل', 'المادة الدراسية', 'الحالة'].map(header => (
+                {['التاريخ', 'اسم الطالب', 'المهجع', 'البيان'].map(header => (
                   <th key={header} className="py-3 px-6 text-right font-semibold text-white text-sm uppercase tracking-wider">{header}</th>
                 ))}
                 <th className="py-3 px-6 text-center font-semibold text-white text-sm uppercase tracking-wider">حذف</th>
@@ -158,18 +105,13 @@ const GeneralReportPage: React.FC = () => {
                 <tr key={record.id} className="hover:bg-slate-50 transition-colors">
                   <td className="py-4 px-6 text-slate-700 whitespace-nowrap">{record.date}</td>
                   <td className="py-4 px-6 font-bold text-slate-800 whitespace-nowrap">{record.studentName}</td>
-                  <td className="py-4 px-6 text-slate-700 whitespace-nowrap">{record.className}</td>
-                  <td className="py-4 px-6 text-slate-700 whitespace-nowrap">{record.course || '-'}</td>
-                  <td className="py-4 px-6">
-                    <span className={`px-3 py-1 text-xs font-bold rounded-full ${statusBadge(record.status)}`}>
-                      {record.status}
-                    </span>
-                  </td>
+                  <td className="py-4 px-6 text-slate-700 whitespace-nowrap">{record.dormitoryName}</td>
+                  <td className="py-4 px-6 text-slate-700 whitespace-normal max-w-xs">{record.description || '-'}</td>
                   <td className="py-4 px-6 text-center">
                     <button 
                       onClick={() => handleDeleteRecord(record.id, record.studentName)}
                       className="text-slate-400 hover:text-rose-600 transition-colors p-1 rounded-full hover:bg-rose-100"
-                      aria-label={`حذف سجل ${record.studentName} بتاريخ ${record.date}`}
+                      aria-label={`حذف إذن ${record.studentName} بتاريخ ${record.date}`}
                     >
                       <TrashIcon className="w-5 h-5" />
                     </button>
@@ -177,7 +119,7 @@ const GeneralReportPage: React.FC = () => {
                 </tr>
               )) : (
                 <tr>
-                  <td colSpan={6} className="text-center py-16 text-slate-500">
+                  <td colSpan={5} className="text-center py-16 text-slate-500">
                     <div className="flex flex-col items-center">
                         <svg className="w-16 h-16 text-slate-300 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" strokeWidth="1.5" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" d="M20.25 7.5l-.625 10.632a2.25 2.25 0 01-2.247 2.118H6.622a2.25 2.25 0 01-2.247-2.118L3.75 7.5M10 11.25h4M3.375 7.5h17.25c.621 0 1.125-.504 1.125-1.125v-1.5c0-.621-.504-1.125-1.125-1.125H3.375c-.621 0-1.125.504-1.125 1.125v1.5c0 .621.504 1.125 1.125 1.125z" /></svg>
                         <p className="font-bold text-lg">لا توجد سجلات لعرضها.</p>
@@ -194,4 +136,4 @@ const GeneralReportPage: React.FC = () => {
   );
 };
 
-export default GeneralReportPage;
+export default DormitoryReportPage;

@@ -2,10 +2,10 @@ import React from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 
-const Header: React.FC = () => {
+const DormitoryHeader: React.FC = () => {
   const location = useLocation();
   const { user, signOut } = useAuth();
-  
+
   const navLinkClasses = (path: string) =>
     `px-3 py-2 rounded-lg text-sm md:text-base font-semibold transition-all duration-300 relative whitespace-nowrap ${
       location.pathname === path
@@ -18,15 +18,11 @@ const Header: React.FC = () => {
       <nav className="container mx-auto px-4 sm:px-6 py-3">
         <div className="flex items-center justify-between">
           <Link to="/" className="text-xl md:text-2xl font-extrabold tracking-tight">
-            <span className="gradient-text">الشؤون الأكاديمية</span>
+            <span className="gradient-text">شؤون السكن</span>
           </Link>
           <div className="hidden md:flex items-center space-x-1 space-x-reverse">
-            <Link to="/academic/dashboard" className={navLinkClasses('/academic/dashboard')}>الرئيسية</Link>
-            <Link to="/academic/attendance" className={navLinkClasses('/academic/attendance')}>الحضور</Link>
-            <Link to="/academic/permission" className={navLinkClasses('/academic/permission')}>الإذن</Link>
-            <Link to="/academic/report/general" className={navLinkClasses('/academic/report/general')}>التقرير العام</Link>
-            <Link to="/academic/report/class" className={navLinkClasses('/academic/report/class')}>تقرير الفصل</Link>
-            <Link to="/academic/report/student" className={navLinkClasses('/academic/report/student')}>تقرير الطالب</Link>
+            <Link to="/dormitory/permission" className={navLinkClasses('/dormitory/permission')}>تسجيل الإذن</Link>
+            <Link to="/dormitory/report" className={navLinkClasses('/dormitory/report')}>تقرير الإذن</Link>
           </div>
           <div className="flex items-center space-x-2 md:space-x-4 space-x-reverse">
             {user && (
@@ -39,16 +35,12 @@ const Header: React.FC = () => {
         </div>
         {/* Mobile Nav */}
         <div className="md:hidden flex items-center justify-center space-x-1 space-x-reverse pt-2 mt-2 border-t border-slate-700/50 overflow-x-auto">
-            <Link to="/academic/dashboard" className={navLinkClasses('/academic/dashboard')}>الرئيسية</Link>
-            <Link to="/academic/attendance" className={navLinkClasses('/academic/attendance')}>الحضور</Link>
-            <Link to="/academic/permission" className={navLinkClasses('/academic/permission')}>الإذن</Link>
-            <Link to="/academic/report/general" className={navLinkClasses('/academic/report/general')}>العام</Link>
-            <Link to="/academic/report/class" className={navLinkClasses('/academic/report/class')}>الفصل</Link>
-            <Link to="/academic/report/student" className={navLinkClasses('/academic/report/student')}>الطالب</Link>
+            <Link to="/dormitory/permission" className={navLinkClasses('/dormitory/permission')}>الإذن</Link>
+            <Link to="/dormitory/report" className={navLinkClasses('/dormitory/report')}>التقرير</Link>
         </div>
       </nav>
     </header>
   );
 };
 
-export default Header;
+export default DormitoryHeader;

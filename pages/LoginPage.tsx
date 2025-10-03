@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import { useAuth } from '../context/AuthContext';
 
@@ -9,13 +10,16 @@ const LoginPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { session } = useAuth();
+  
+  const from = location.state?.from?.pathname || "/";
 
   useEffect(() => {
     if (session) {
-      navigate('/', { replace: true });
+      navigate(from, { replace: true });
     }
-  }, [session, navigate]);
+  }, [session, navigate, from]);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -27,9 +31,16 @@ const LoginPage: React.FC = () => {
         password,
       });
       if (error) {
-        setError(error.message);
+        if (error.message === 'Invalid login credentials') {
+             setError('البريد الإلكتروني أو كلمة المرور غير صحيحة.');
+        } else if (error.message.includes('Email not confirmed')) {
+            setError('الرجاء تأكيد بريدك الإلكتروني. تحقق من صندوق الوارد الخاص بك.');
+        }
+        else {
+            setError(error.message);
+        }
       } else {
-        navigate('/', { replace: true });
+        navigate(from, { replace: true });
       }
     } catch (err: any) {
       setError(err.message || 'An unexpected error occurred.');
