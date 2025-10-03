@@ -6,6 +6,8 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>كشف الغياب والحضور لطلاب جامعة الإمام الشافعي</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Babel for in-browser JSX & TSX transformation -->
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
     <!-- SheetJS (xlsx) for Excel export -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <!-- jsPDF and jspdf-autotable for PDF export -->
@@ -109,6 +111,6 @@
 </head>
   <body>
     <div id="root"></div>
-    <script type="module" src="/index.tsx"></script>
+    <script data-type="module" type="text/babel" data-presets="react,typescript" src="/index.tsx"></script>
   </body>
 </html>
